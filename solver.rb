@@ -9,6 +9,7 @@ class Grid
   attr_accessor :grid
 
   def boxes
+    # returns an array of 3*3 boxes
     @boxes = []
     @grid.each_slice(3) do |rows_slice|
       rows_slice.transpose.each_slice(3) do |box|
@@ -18,23 +19,9 @@ class Grid
     @boxes
   end
 
-  def get_box(name)
-    char, num = name[0], name[1].to_i
-    index = (num-1)/3
-    ["ABC", "DEF", "GHI"].each {|string| @box_name = string.downcase[index] if string.include?(char)}
-    return @sections["boxes"][@box_name]
-  end
-
-
   def sections
-    @sections = {
-      "rows" => {
-      },
-      "columns" => {
-      },
-      "boxes" => {
-      }
-    }
+    # generates hash to organise the different rows, columns and boxes of the sudoku
+    @sections = { "rows" => {}, "columns" => {}, "boxes" => {} }
     (0..8).each do |i|
       @sections["rows"]["ABCDEFGHI"[i]] = @grid[i]
       @sections["columns"]["123456789"[i]] = @grid.transpose[i]
@@ -43,26 +30,49 @@ class Grid
     @sections
   end
 
-  def remove_possibilities
-    while @grid.flatten.include?(0) do
-      @grid.each_with_index do |row, row_index|
-        row.each_with_index do |item, column_index|
-          if item == 0
-            item_name = "ABCDEFGHI"[row_index] + "123456789"[column_index]
-            item_row = sections["rows"][item_name[0]]
-            item_col = sections["columns"][item_name[1]]
-            item_box = get_box(item_name)
-            @possibilities[item_name] = (1..9).to_a
-            (item_row | item_col | item_box).each { |number| @possibilities[item_name].delete(number) if number != 0 }
-            if @possibilities[item_name].length == 1
-              @grid[row_index][column_index] = @possibilities[item_name][0]
-            end
+  def get_box(name)
+    char, num = name[0], name[1].to_i
+    index = (num-1)/3 # turns the numerical identifier for an item's row (1-9) into an identifier for which column of boxes it belongs to (1-3)
+
+    ["ABC", "DEF", "GHI"].each {|string| @box_name = string.downcase[index] if string.include?(char)} # gets box name (named as above) from the above
+    return @sections["boxes"][@box_name]
+  end
+
+  def reduce_possibilities
+    @grid.each_with_index do |row, row_index|
+      row.each_with_index do |item, column_index|
+        if item == 0
+          item_name = "ABCDEFGHI"[row_index] + "123456789"[column_index]
+          item_row = sections["rows"][item_name[0]]
+          item_col = sections["columns"][item_name[1]]
+          item_box = get_box(item_name)
+          @possibilities[item_name] = (1..9).to_a
+          (item_row | item_col | item_box).each { |number| @possibilities[item_name].delete(number) if number != 0 }
+
+          if @possibilities[item_name].length == 1
+            @grid[row_index][column_index] = @possibilities[item_name][0]
           end
+
         end
       end
     end
   end
 
+  def solve
+    # keeps filling out sudoku by reducing possibilities until all squares are full.
+    iterations = 0
+    while @grid.flatten.include?(0) do
+      # Gives up after 100 iterations, to prevent hanging on unsolveable sudokus
+      iterations += 1
+      if iterations > 100
+        puts "Unable to solve after 100 iterations: returning current grid"
+        return @grid
+      end
+      reduce_possibilities
+    end
+
+    return @grid
+  end
 end
 
 grid = Grid.new([
@@ -77,7 +87,5 @@ grid = Grid.new([
   [0,0,0,0,8,0,0,7,9]])
 
 grid.grid.each {|row| p row}
-grid.remove_possibilities
 puts
-puts
-grid.grid.each {|row| p row}
+grid.solve.each {|row| p row}
