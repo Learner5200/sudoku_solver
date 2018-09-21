@@ -39,12 +39,10 @@ class Grid
 
 
   def reduce_possibilities(item_name)
-    # creates array of possibilities and eliminates any that are present in the item's row, column or box
+    # creates array of possibilities excluding those present in the item's row, column or box
     item_sections = sections["rows"][item_name[0]] | sections["columns"][item_name[1]] | get_box(item_name)
-    @possibilities[item_name] = (1..9).to_a.select { |number| !(item_sections.include? number) }
+    @possibilities[item_name] = (1..9).to_a.reject { |number| item_sections.include? number }
 
-    # @possibilities[item_name] = (1..9).to_a
-    # (item_row | item_col | item_box).each { |number| @possibilities[item_name].delete(number) if number != 0 }
   end
 
   def update(item_name, row_index, column_index)
